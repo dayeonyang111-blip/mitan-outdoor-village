@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title id="page-title">체험 프로그램</title>
+  <!-- Adobe Fonts -->
+  <link rel="stylesheet" href="https://use.typekit.net/yia4dig.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link id="body-font-link" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
   <link id="title-font-link" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&display=swap" rel="stylesheet">
@@ -15,9 +17,16 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root{
-      --forest:#2d4a3e;--moss:#4a7c59;--sage:#8fad88;
-      --sand:#e8dcc8;--cream:#f7f3ec;--ocean:#1a3a5c;
-      --gold:#c9a84c;--dark:#1a1a18;--white:#fff;
+      --forest:#203e15;    /* 짙은 녹색 - 주요 배경/강조 */
+      --moss:#3e7936;      /* 중간 녹색 - 버튼/포인트 */
+      --sage:#bcc863;      /* 연두 - 배지/액센트 */
+      --sand:#e4a800;      /* 골드/황색 - 하이라이트 */
+      --cream:#f5f9ff;     /* 밝은 배경 */
+      --ocean:#0094c9;     /* 파란색 - 링크/포인트 */
+      --gold:#e4a800;      /* 골드 */
+      --dark:#1a1a18;
+      --white:#ffffff;
+      --brown:#bb7b33;     /* 브라운 - 보조 */
     }
     *{margin:0;padding:0;box-sizing:border-box;}
     body{background:var(--cream);color:var(--dark);overflow-x:hidden;}
@@ -44,7 +53,7 @@
 
     /* ── HERO ── */
     #hero{position:relative;height:100vh;min-height:600px;display:flex;align-items:center;justify-content:center;overflow:hidden;}
-    .hero-bg{position:absolute;inset:0;background:linear-gradient(135deg,var(--forest) 0%,var(--ocean) 60%,#0d2233 100%);}
+    .hero-bg{position:absolute;inset:0;background:linear-gradient(135deg,var(--forest) 0%,#0a2808 40%,var(--ocean) 100%);}
     .hero-bg::after{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none'%3E%3Cg fill='%23fff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");}
     .hero-bg.has-img{background:none;}
     .hero-bg.has-img::after{display:none;}
@@ -396,12 +405,17 @@ async function loadSettings() {
   // 글꼴
   const bodyFont = get('body_font');
   const titleFont = get('title_font');
+  const adobeFonts = ['sandoll-gothicneo3', 'rix-jongno-pro', 'neighbor', 'posterama-2001']; // Adobe Fonts 목록
   if (bodyFont && bodyFont !== 'Noto Sans KR') {
-    document.getElementById('body-font-link').href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(bodyFont)}:wght@300;400;500;700&display=swap`;
+    if (!adobeFonts.includes(bodyFont)) {
+      document.getElementById('body-font-link').href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(bodyFont)}:wght@300;400;500;700&display=swap`;
+    }
     document.documentElement.style.setProperty('--body-font', `'${bodyFont}'`);
   }
   if (titleFont && titleFont !== 'Noto Serif KR') {
-    document.getElementById('title-font-link').href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(titleFont)}:wght@400;600;700&display=swap`;
+    if (!adobeFonts.includes(titleFont)) {
+      document.getElementById('title-font-link').href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(titleFont)}:wght@400;600;700&display=swap`;
+    }
     document.documentElement.style.setProperty('--title-font', `'${titleFont}'`);
   }
 }
