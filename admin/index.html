@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>관리자 페이지</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root{--forest:#2d4a3e;--moss:#4a7c59;--gold:#c9a84c;--cream:#f7f3ec;--danger:#e05252;--border:#e0d8cc;--text:#2a2a28;--muted:#888;--sidebar:#1e3530;}
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--text);}
+
+    /* LOGIN */
+    #login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--forest),#0d2233);}
+    .login-box{background:#fff;border-radius:20px;padding:48px 40px;width:100%;max-width:400px;box-shadow:0 24px 64px rgba(0,0,0,.2);text-align:center;}
+    .login-logo{font-size:36px;margin-bottom:8px;}
+    .login-title{font-size:20px;font-weight:700;color:var(--forest);margin-bottom:4px;}
+    .login-sub{font-size:13px;color:var(--muted);margin-bottom:32px;}
+    .login-input{width:100%;padding:14px 16px;border:2px solid var(--border);border-radius:10px;font-size:15px;font-family:inherit;outline:none;transition:border .2s;margin-bottom:16px;}
+    .login-input:focus{border-color:var(--moss);}
+    .login-btn{width:100%;padding:15px;background:var(--forest);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;}
+    .login-btn:hover{background:var(--moss);}
+    .login-error{color:var(--danger);font-size:13px;margin-top:10px;display:none;}
+
+    /* LAYOUT */
+    #admin-screen{display:none;min-height:100vh;}
+    .layout{display:flex;min-height:100vh;}
+    .sidebar{width:220px;flex-shrink:0;background:var(--sidebar);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:10;}
+    .sidebar-logo{padding:24px 20px;color:var(--gold);font-size:15px;font-weight:700;border-bottom:1px solid rgba(255,255,255,.08);}
+    .sidebar-logo small{color:rgba(255,255,255,.35);font-size:11px;display:block;margin-top:2px;font-weight:400;}
+    .sidebar-nav{padding:12px 10px;flex:1;overflow-y:auto;}
+    .nav-item{display:flex;align-items:center;gap:9px;padding:11px 12px;border-radius:8px;color:rgba(255,255,255,.55);font-size:13px;cursor:pointer;transition:all .2s;margin-bottom:2px;user-select:none;}
+    .nav-item:hover{background:rgba(255,255,255,.07);color:#fff;}
+    .nav-item.active{background:var(--moss);color:#fff;}
+    .nav-icon{font-size:15px;width:18px;text-align:center;}
+    .sidebar-bottom{padding:12px 10px;border-top:1px solid rgba(255,255,255,.08);}
+    .logout-btn{width:100%;padding:10px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.45);border:none;border-radius:7px;font-size:13px;cursor:pointer;font-family:inherit;}
+    .logout-btn:hover{background:rgba(224,82,82,.2);color:#ff8080;}
+    .main{margin-left:220px;flex:1;padding:28px 32px;min-height:100vh;}
+
+    /* PAGE HEADER */
+    .page-hd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;}
+    .page-title{font-size:20px;font-weight:700;color:var(--forest);}
+    .page-sub{font-size:13px;color:var(--muted);margin-top:3px;}
+
+    /* BUTTONS */
+    .btn{padding:9px 18px;border-radius:7px;font-size:13px;font-weight:600;border:none;cursor:pointer;transition:all .2s;font-family:inherit;white-space:nowrap;}
+    .btn-primary{background:var(--forest);color:#fff;}.btn-primary:hover{background:var(--moss);}
+    .btn-success{background:#3a8a5c;color:#fff;}.btn-success:hover{background:#2d7048;}
+    .btn-danger{background:var(--danger);color:#fff;}.btn-danger:hover{background:#c33;}
+    .btn-ghost{background:transparent;color:var(--forest);border:1.5px solid var(--forest);}.btn-ghost:hover{background:var(--forest);color:#fff;}
+    .btn-sm{padding:5px 12px;font-size:12px;}
+
+    /* CARD */
+    .card{background:#fff;border-radius:12px;padding:22px;box-shadow:0 2px 12px rgba(0,0,0,.06);margin-bottom:16px;}
+    .card-title{font-size:14px;font-weight:700;color:var(--forest);margin-bottom:16px;display:flex;align-items:center;gap:6px;}
+    .card-title span{font-size:11px;color:var(--muted);font-weight:400;margin-left:4px;}
+
+    /* FORM */
+    .form-group{margin-bottom:16px;}
+    .form-group:last-child{margin-bottom:0;}
+    .form-label{display:block;font-size:12px;font-weight:600;color:var(--forest);margin-bottom:5px;}
+    .form-label .req{color:var(--danger);}
+    .form-label .hint{color:var(--muted);font-weight:400;font-size:11px;margin-left:4px;}
+    .form-input,.form-textarea,.form-select{width:100%;padding:10px 13px;border:1.5px solid var(--border);border-radius:7px;font-size:14px;font-family:inherit;outline:none;transition:border .2s;background:#fff;}
+    .form-input:focus,.form-textarea:focus,.form-select:focus{border-color:var(--moss);}
+    .form-textarea{resize:vertical;min-height:80px;line-height:1.6;}
+    .form-hint{font-size:11px;color:var(--muted);margin-top:4px;}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+    .form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+
+    /* SECTION DIVIDER */
+    .section-divider{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:20px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+
+    /* IMAGE UPLOAD */
+    .img-upload{border:2px dashed var(--border);border-radius:8px;padding:20px;text-align:center;cursor:pointer;transition:all .2s;position:relative;}
+    .img-upload:hover,.img-upload.over{border-color:var(--moss);background:#f0f7f2;}
+    .img-upload input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;}
+    .upload-ico{font-size:24px;margin-bottom:5px;}
+    .upload-txt{font-size:13px;color:var(--muted);}
+    .upload-hint{font-size:11px;color:#bbb;margin-top:2px;}
+    .img-preview{width:100%;max-height:160px;object-fit:cover;border-radius:7px;margin-top:10px;display:none;}
+    .prog-wrap{height:3px;background:var(--border);border-radius:2px;margin-top:10px;overflow:hidden;display:none;}
+    .prog-bar{height:100%;background:var(--moss);border-radius:2px;width:0%;transition:width .3s;}
+
+    /* SETTINGS */
+    .setting-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border);gap:16px;flex-wrap:wrap;}
+    .setting-row:last-child{border-bottom:none;padding-bottom:0;}
+    .setting-info{flex:1;}
+    .setting-label{font-size:14px;font-weight:600;margin-bottom:2px;}
+    .setting-desc{font-size:12px;color:var(--muted);line-height:1.5;}
+    .setting-ctrl{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+    .num-input{width:72px;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:15px;font-weight:600;text-align:center;font-family:inherit;outline:none;}
+    .num-input:focus{border-color:var(--moss);}
+
+    /* CAT LIST */
+    .cat-item{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--border);}
+    .cat-item:last-child{border-bottom:none;}
+    .cat-thumb{width:56px;height:42px;border-radius:6px;object-fit:cover;flex-shrink:0;}
+    .cat-thumb-ph{width:56px;height:42px;border-radius:6px;background:linear-gradient(135deg,var(--moss),var(--forest));flex-shrink:0;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.4);font-size:18px;}
+    .cat-name{flex:1;font-weight:500;font-size:14px;}
+    .cat-order-badge{font-size:12px;color:var(--muted);margin-right:6px;}
+    .actions{display:flex;gap:5px;}
+
+    /* PKG TABLE */
+    .tbl-wrap{overflow-x:auto;}
+    table{width:100%;border-collapse:collapse;}
+    th{text-align:left;padding:9px 11px;font-size:11px;font-weight:600;color:var(--muted);border-bottom:2px solid var(--border);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;}
+    td{padding:11px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle;}
+    tr:last-child td{border-bottom:none;}
+    tr:hover td{background:#faf8f4;}
+    .pkg-thumb{width:48px;height:36px;border-radius:5px;object-fit:cover;}
+    .pkg-thumb-ph{width:48px;height:36px;border-radius:5px;background:linear-gradient(135deg,var(--moss),var(--forest));display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.4);font-size:14px;}
+    .pkg-title-td{max-width:200px;}.pkg-title-td .t{font-weight:500;line-height:1.4;}
+    .price-td{font-weight:700;color:var(--forest);white-space:nowrap;}
+    .url-td{max-width:140px;}
+    .url-td a{color:var(--moss);font-size:11px;text-decoration:none;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .no-url{font-size:11px;color:#ccc;}
+    .badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;}
+
+    /* FILTER TABS */
+    .filter-tabs{display:flex;flex-wrap:wrap;gap:4px;}
+    .ftab{padding:7px 14px;border-radius:6px;font-size:13px;font-weight:500;border:none;cursor:pointer;background:transparent;color:var(--muted);transition:all .2s;font-family:inherit;}
+    .ftab.active{background:var(--forest);color:#fff;}
+    .ftab:hover:not(.active){background:var(--border);color:var(--text);}
+
+    /* MODAL */
+    .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:1000;padding:16px;}
+    .modal-bg.open{display:flex;}
+    .modal{background:#fff;border-radius:14px;width:100%;max-width:540px;max-height:92vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.2);}
+    .modal-hd{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:#fff;z-index:1;}
+    .modal-title{font-size:16px;font-weight:700;color:var(--forest);}
+    .modal-x{background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);line-height:1;}
+    .modal-x:hover{color:var(--danger);}
+    .modal-body{padding:18px 22px;}
+    .modal-ft{padding:10px 22px 18px;display:flex;gap:8px;justify-content:flex-end;}
+
+    /* TIPS */
+    .tips{background:linear-gradient(135deg,#f0f7f2,#e8f3ec);border:1.5px solid #c8e0d0;border-radius:10px;padding:16px 18px;}
+    .tips-title{font-size:13px;font-weight:700;color:var(--moss);margin-bottom:8px;}
+    .tips ul{font-size:13px;color:#555;line-height:1.9;padding-left:18px;}
+
+    /* TOAST */
+    #toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:9px;font-size:13px;font-weight:500;opacity:0;transform:translateY(8px);transition:all .3s;z-index:9999;pointer-events:none;max-width:280px;}
+    #toast.show{opacity:1;transform:translateY(0);}
+    #toast.ok{background:var(--forest);color:#fff;}
+    #toast.err{background:var(--danger);color:#fff;}
+
+    /* EMPTY */
+    .empty{text-align:center;padding:48px 20px;color:#bbb;}
+    .empty .ico{font-size:36px;margin-bottom:10px;}
+
+
+    /* FONT GRID */
+    .font-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-top:6px;}
+    .font-card{border:2px solid var(--border);border-radius:8px;padding:12px 14px;cursor:pointer;transition:all .2s;background:#fff;}
+    .font-card:hover{border-color:var(--moss);background:#f5fbf7;}
+    .font-card.selected{border-color:var(--moss);background:#e8f3ec;}
+    .font-card .fname{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;}
+    .font-card .fsample{font-size:15px;color:#555;line-height:1.4;}
+
+    /* EXTRA IMG ROW */
+    .extra-img-row{display:flex;align-items:center;gap:8px;background:#faf8f4;border-radius:8px;padding:8px 10px;border:1px solid var(--border);}
+    .extra-img-thumb{width:48px;height:36px;border-radius:5px;object-fit:cover;flex-shrink:0;display:none;}
+    .extra-img-info{flex:1;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .schedule-row{background:#faf8f4;border-radius:8px;padding:12px;border:1px solid var(--border);}
+    .schedule-row-hd{display:flex;gap:8px;margin-bottom:8px;align-items:center;}
+    .schedule-day-input{width:60px;padding:7px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;outline:none;text-align:center;}
+    .schedule-day-input:focus{border-color:var(--moss);}
+    .schedule-title-input{flex:1;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;outline:none;}
+    .schedule-title-input:focus{border-color:var(--moss);}
+    .schedule-content-input{width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;outline:none;resize:vertical;min-height:70px;line-height:1.6;}
+    .schedule-content-input:focus{border-color:var(--moss);}
+    .del-row-btn{background:none;border:none;color:#ccc;cursor:pointer;font-size:18px;line-height:1;padding:0 4px;flex-shrink:0;}
+    .del-row-btn:hover{color:var(--danger);}
+
+    /* ── 추가 이미지 / 일정 행 ── */
+    .extra-img-row{display:flex;align-items:center;gap:8px;background:#f9f7f3;border:1px solid var(--border);border-radius:7px;padding:8px 10px;}
+    .extra-img-thumb{width:48px;height:36px;object-fit:cover;border-radius:5px;display:none;flex-shrink:0;}
+    .extra-img-info{flex:1;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .del-row-btn{background:none;border:none;color:var(--danger);font-size:18px;cursor:pointer;flex-shrink:0;line-height:1;}
+    .schedule-row{background:#f9f7f3;border:1px solid var(--border);border-radius:8px;padding:12px;}
+    .schedule-row-hd{display:flex;gap:8px;margin-bottom:8px;align-items:center;}
+    .schedule-day-input{width:60px;padding:7px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;outline:none;text-align:center;}
+    .schedule-title-input{flex:1;padding:7px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;outline:none;}
+    .schedule-day-input:focus,.schedule-title-input:focus{border-color:var(--moss);}
+    .schedule-content-input{width:100%;padding:10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;outline:none;min-height:120px;resize:vertical;line-height:1.6;}
+    .schedule-content-input:focus{border-color:var(--moss);}
+    @media(max-width:700px){.sidebar{display:none;}.main{margin-left:0;padding:16px;}.form-row,.form-row-3{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">🌿</div>
+    <h1 class="login-title">관리자 로그인</h1>
+    <p class="login-sub">체험 프로그램 관리 시스템</p>
+    <input type="password" class="login-input" id="pw-input" placeholder="비밀번호를 입력하세요" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">로그인</button>
+    <p class="login-error" id="login-error">비밀번호가 올바르지 않습니다</p>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="admin-screen">
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-logo">✦ 체험 프로그램<small>관리자 대시보드</small></div>
+      <nav class="sidebar-nav">
+        <div class="nav-item" id="nav-hero" onclick="showTab('hero')"><span class="nav-icon">🖼</span> 메인 페이지 편집</div>
+        <div class="nav-item" id="nav-settings" onclick="showTab('settings')"><span class="nav-icon">⚙️</span> 사이트 설정</div>
+        <div class="nav-item" id="nav-categories" onclick="showTab('categories')"><span class="nav-icon">🗂</span> 코스 관리</div>
+        <div class="nav-item" id="nav-packages" onclick="showTab('packages')"><span class="nav-icon">📦</span> 패키지 관리</div>
+      </nav>
+      <div class="sidebar-bottom">
+        <button class="logout-btn" onclick="doLogout()">로그아웃</button>
+      </div>
+    </aside>
+
+    <main class="main">
+
+      <!-- ══ 메인 페이지 편집 ══ -->
+      <div id="tab-hero" style="display:none;">
+        <div class="page-hd">
+          <div><div class="page-title">메인 페이지 편집</div><div class="page-sub">홈 화면의 모든 문구와 이미지를 수정합니다</div></div>
+          <button class="btn btn-success" onclick="saveHero()">💾 전체 저장</button>
+        </div>
+
+        <!-- 히어로 이미지 -->
+        <div class="card">
+          <div class="card-title">🖼 히어로 배경 이미지</div>
+          <div class="img-upload" id="hero-img-area"
+            ondragover="onDragOver(event,'hero-img-area')" ondragleave="onDragLeave('hero-img-area')"
+            ondrop="onDrop(event,'hero-img-input','hero-img-preview','hero')">
+            <input type="file" id="hero-img-input" accept="image/*" onchange="onFileSelect(event,'hero-img-preview','hero')">
+            <div class="upload-ico">🖼</div>
+            <div class="upload-txt">클릭하거나 이미지를 드래그하세요</div>
+            <div class="upload-hint">JPG, PNG, WEBP (최대 5MB) · 비워두면 기본 그라디언트 배경 유지</div>
+            <div class="prog-wrap" id="hero-prog"><div class="prog-bar" id="hero-bar"></div></div>
+          </div>
+          <img class="img-preview" id="hero-img-preview">
+          <input type="hidden" id="hero-img-url">
+          <!-- 오버레이 투명도 -->
+          <div style="margin-top:16px;">
+            <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;">
+              <span>어두운 오버레이 강도 <span class="hint">— 이미지 위에 씌우는 어두운 막</span></span>
+              <span id="overlay-val-display" style="font-weight:700;color:var(--forest);font-size:14px;">45%</span>
+            </label>
+            <div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
+              <span style="font-size:12px;color:var(--muted);">밝게</span>
+              <input type="range" id="hero-overlay" min="0" max="90" step="5" value="45"
+                style="flex:1;accent-color:var(--forest);height:6px;cursor:pointer;"
+                oninput="updateOverlayPreview(this.value)">
+              <span style="font-size:12px;color:var(--muted);">어둡게</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:10px;gap:8px;flex-wrap:wrap;">
+              <div style="flex:1;min-width:120px;height:48px;border-radius:6px;overflow:hidden;position:relative;border:1px solid var(--border);">
+                <div style="position:absolute;inset:0;background:linear-gradient(135deg,#2d4a3e,#1a3a5c);"></div>
+                <div id="overlay-preview" style="position:absolute;inset:0;background:rgba(0,0,0,0.45);"></div>
+                <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:600;">미리보기</div>
+              </div>
+              <div style="font-size:12px;color:var(--muted);line-height:1.6;flex:2;min-width:160px;">
+                💡 밝은 사진: 40~60% 추천<br>어두운 사진: 20~35% 추천<br>0%: 오버레이 없음
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 글꼴 선택 -->
+        <div class="card">
+          <div class="card-title">🔤 글꼴 선택 <span>— 사이트 전체 글꼴이 바뀝니다</span></div>
+          <div class="form-group">
+            <label class="form-label">본문 글꼴 <span class="hint">— 일반 텍스트, 버튼, 설명 등</span></label>
+            <div class="font-grid" id="body-font-grid"></div>
+            <input type="hidden" id="body-font">
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label class="form-label">제목 글꼴 <span class="hint">— 메인 제목, 섹션 타이틀 등</span></label>
+            <div class="font-grid" id="title-font-grid"></div>
+            <input type="hidden" id="title-font">
+          </div>
+        </div>
+
+        <!-- 헤더 -->
+        <div class="card">
+          <div class="card-title">🔝 헤더 <span>— 화면 상단 고정 영역</span></div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">로고 / 사이트명</label>
+              <input type="text" class="form-input" id="site-name" placeholder="체험 프로그램">
+            </div>
+            <div class="form-group">
+              <label class="form-label">헤더 네비 텍스트</label>
+              <input type="text" class="form-input" id="header-nav-text" placeholder="코스 보기">
+            </div>
+          </div>
+        </div>
+
+        <!-- 히어로 문구 -->
+        <div class="card">
+          <div class="card-title">✨ 히어로 문구 <span>— 메인 화면 중앙 텍스트</span></div>
+          <div class="form-group">
+            <label class="form-label">상단 작은 태그라인</label>
+            <input type="text" class="form-input" id="hero-eyebrow" placeholder="Special Experience Package">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">메인 제목<span class="hint">줄바꿈: \n</span></label>
+              <input type="text" class="form-input" id="hero-title" placeholder="특별한 순간을\n당신과 함께">
+            </div>
+            <div class="form-group">
+              <label class="form-label">강조 단어<span class="hint">금색으로 표시될 부분</span></label>
+              <input type="text" class="form-input" id="hero-accent" placeholder="당신과 함께">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">소개 문구<span class="hint">줄바꿈: \n</span></label>
+            <input type="text" class="form-input" id="hero-sub" placeholder="자연 속 힐링부터 짜릿한 액티비티까지\n잊을 수 없는 체험을 선물합니다">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">버튼 텍스트</label>
+              <input type="text" class="form-input" id="hero-cta-text" placeholder="코스 둘러보기 ↓">
+            </div>
+            <div class="form-group">
+              <label class="form-label">스크롤 힌트 텍스트</label>
+              <input type="text" class="form-input" id="scroll-hint-text" placeholder="SCROLL">
+            </div>
+          </div>
+        </div>
+
+        <!-- 코스 섹션 -->
+        <div class="card">
+          <div class="card-title">🗂 코스 섹션 <span>— 히어로 아래 코스 목록 영역</span></div>
+          <div class="form-row-3">
+            <div class="form-group">
+              <label class="form-label">섹션 라벨<span class="hint">영문 소제목</span></label>
+              <input type="text" class="form-input" id="section-label" placeholder="Experience Course">
+            </div>
+            <div class="form-group">
+              <label class="form-label">섹션 제목</label>
+              <input type="text" class="form-input" id="section-title" placeholder="원하는 코스를 선택하세요">
+            </div>
+            <div class="form-group">
+              <label class="form-label">섹션 소개 문구</label>
+              <input type="text" class="form-input" id="section-sub" placeholder="각 코스별로 엄선된 체험 패키지를 만나보세요">
+            </div>
+          </div>
+        </div>
+
+        <!-- 패키지 상세 페이지 -->
+        <div class="card">
+          <div class="card-title">📦 패키지 상세 페이지 <span>— 패키지 클릭 시 표시되는 페이지</span></div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">가격 라벨</label>
+              <input type="text" class="form-input" id="price-label" placeholder="패키지 가격 (1인 기준)">
+            </div>
+            <div class="form-group">
+              <label class="form-label">예약 버튼 텍스트</label>
+              <input type="text" class="form-input" id="reserve-btn-text" placeholder="지금 예약하기">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">뒤로가기 텍스트</label>
+            <input type="text" class="form-input" id="back-to-home-text" placeholder="← 코스 목록으로">
+          </div>
+        </div>
+
+        <!-- 푸터 -->
+        <div class="card">
+          <div class="card-title">🦶 푸터 <span>— 페이지 맨 아래</span></div>
+          <div class="form-group">
+            <label class="form-label">안내 문구</label>
+            <input type="text" class="form-input" id="footer-desc" placeholder="문의 및 예약 안내는 각 패키지 상세 페이지를 확인해주세요">
+          </div>
+          <div class="form-group">
+            <label class="form-label">카피라이트</label>
+            <input type="text" class="form-input" id="footer-copy" placeholder="© 2025 체험 프로그램. All rights reserved.">
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ 사이트 설정 ══ -->
+      <div id="tab-settings" style="display:none;">
+        <div class="page-hd">
+          <div><div class="page-title">사이트 설정</div><div class="page-sub">홈 화면 표시 옵션을 관리합니다</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title">⚙️ 홈 화면 설정</div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <div class="setting-label">홈 화면 코스 표시 개수</div>
+              <div class="setting-desc">메인 페이지에 표시할 코스 카드 수입니다.<br>코스가 더 많아도 이 숫자만큼만 보입니다.</div>
+            </div>
+            <div class="setting-ctrl">
+              <input type="number" class="num-input" id="cat-limit-input" min="1" max="20" value="3">
+              <button class="btn btn-success" onclick="saveCatLimit()">저장</button>
+            </div>
+          </div>
+        </div>
+        <div class="tips">
+          <div class="tips-title">💡 사용 팁</div>
+          <ul>
+            <li><b>메인 페이지 편집</b>에서 모든 문구와 이미지를 수정할 수 있습니다</li>
+            <li><b>코스 표시 개수</b>를 3으로 설정하면 A·B·C 코스만 홈에 표시됩니다</li>
+            <li>각 패키지의 <b>예약 URL</b>은 패키지 관리 탭 → 수정에서 변경하세요</li>
+            <li>수정 후 <b>저장</b>하면 즉시 메인 사이트에 반영됩니다</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- ══ 코스 관리 ══ -->
+      <div id="tab-categories" style="display:none;">
+        <div class="page-hd">
+          <div><div class="page-title">코스 관리</div><div class="page-sub">A코스, B코스 등 카테고리를 추가·수정·삭제합니다</div></div>
+          <button class="btn btn-primary" onclick="openCatModal()">+ 코스 추가</button>
+        </div>
+        <div class="card">
+          <div class="card-title">🗂 등록된 코스</div>
+          <div id="cat-list"><div class="empty"><div class="ico">⏳</div><p>불러오는 중...</p></div></div>
+        </div>
+      </div>
+
+      <!-- ══ 패키지 관리 ══ -->
+      <div id="tab-packages" style="display:none;">
+        <div class="page-hd">
+          <div><div class="page-title">패키지 관리</div><div class="page-sub">각 코스의 패키지를 추가·수정·삭제하고 예약 URL을 설정합니다</div></div>
+          <button class="btn btn-primary" onclick="openPkgModal()">+ 패키지 추가</button>
+        </div>
+        <div class="card" style="padding:14px 20px;">
+          <div class="filter-tabs" id="filter-tabs"></div>
+        </div>
+        <div class="card">
+          <div id="pkg-list"><div class="empty"><div class="ico">⏳</div><p>불러오는 중...</p></div></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- MODAL: 코스 -->
+<div class="modal-bg" id="cat-modal">
+  <div class="modal">
+    <div class="modal-hd"><div class="modal-title" id="cat-modal-title">코스 추가</div><button class="modal-x" onclick="closeCatModal()">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="cat-id">
+      <div class="form-group"><label class="form-label">코스 이름 <span class="req">*</span></label><input type="text" class="form-input" id="cat-name" placeholder="예: A 코스: 숲과 힐링"></div>
+      <div class="form-group"><label class="form-label">표시 순서</label><input type="number" class="form-input" id="cat-order" value="1" min="1" style="width:100px;"></div>
+      <div class="form-group">
+        <label class="form-label">대표 이미지</label>
+        <div class="img-upload" id="cat-img-area" ondragover="onDragOver(event,'cat-img-area')" ondragleave="onDragLeave('cat-img-area')" ondrop="onDrop(event,'cat-img-input','cat-img-preview','cat')">
+          <input type="file" id="cat-img-input" accept="image/*" onchange="onFileSelect(event,'cat-img-preview','cat')">
+          <div class="upload-ico">🖼</div><div class="upload-txt">클릭하거나 드래그하세요</div><div class="upload-hint">JPG, PNG, WEBP · 최대 5MB</div>
+          <div class="prog-wrap" id="cat-prog"><div class="prog-bar" id="cat-bar"></div></div>
+        </div>
+        <img class="img-preview" id="cat-img-preview"><input type="hidden" id="cat-img-url">
+      </div>
+    </div>
+    <div class="modal-ft"><button class="btn btn-ghost" onclick="closeCatModal()">취소</button><button class="btn btn-primary" id="cat-save-btn" onclick="saveCat()">저장</button></div>
+  </div>
+</div>
+
+<!-- MODAL: 패키지 -->
+<div class="modal-bg" id="pkg-modal">
+  <div class="modal">
+    <div class="modal-hd"><div class="modal-title" id="pkg-modal-title">패키지 추가</div><button class="modal-x" onclick="closePkgModal()">×</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="pkg-id">
+      <div class="form-group"><label class="form-label">코스 선택 <span class="req">*</span></label><select class="form-select" id="pkg-cat-id"></select></div>
+      <div class="form-group"><label class="form-label">패키지 제목 <span class="req">*</span></label><input type="text" class="form-input" id="pkg-title" placeholder="예: [서핑] 양양 서핑 베이직 강습 & 렌탈 패키지"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">가격 (원) <span class="req">*</span></label><input type="number" class="form-input" id="pkg-price" placeholder="99000" min="0"></div>
+        <div class="form-group"><label class="form-label">표시 순서</label><input type="number" class="form-input" id="pkg-order" value="1" min="1"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">예약 URL<span class="hint">— 예약하기 버튼 링크</span></label>
+        <input type="url" class="form-input" id="pkg-reserve-url" placeholder="https://예약사이트.com/reserve">
+        <div class="form-hint">비워두면 "연락처로 문의하세요" 안내가 표시됩니다</div>
+      </div>
+      <div class="form-group"><label class="form-label">상세 설명</label><textarea class="form-textarea" id="pkg-desc" placeholder="패키지 상세 설명을 입력하세요"></textarea></div>
+      <div class="form-group">
+        <label class="form-label">대표 이미지</label>
+        <div class="img-upload" id="pkg-img-area" ondragover="onDragOver(event,'pkg-img-area')" ondragleave="onDragLeave('pkg-img-area')" ondrop="onDrop(event,'pkg-img-input','pkg-img-preview','pkg')">
+          <input type="file" id="pkg-img-input" accept="image/*" onchange="onFileSelect(event,'pkg-img-preview','pkg')">
+          <div class="upload-ico">📷</div><div class="upload-txt">클릭하거나 드래그하세요</div><div class="upload-hint">JPG, PNG, WEBP · 최대 5MB</div>
+          <div class="prog-wrap" id="pkg-prog"><div class="prog-bar" id="pkg-bar"></div></div>
+        </div>
+        <img class="img-preview" id="pkg-img-preview"><input type="hidden" id="pkg-img-url">
+      </div>
+    </div>
+      <!-- 추가 이미지 (최대 4장, 대표 포함 총 5장) -->
+      <div class="form-group" style="margin-top:4px;">
+        <label class="form-label">추가 이미지 <span class="hint">— 대표 이미지 포함 최대 5장</span></label>
+        <div id="extra-imgs-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:10px;"></div>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="addExtraImgRow()" id="add-extra-img-btn">+ 이미지 추가</button>
+      </div>
+      <!-- 일정 -->
+      <div class="form-group" style="margin-top:4px;margin-bottom:0;">
+        <label class="form-label">일정표 <span class="hint">— 일차별 일정 입력</span></label>
+        <div id="schedule-list-admin" style="display:flex;flex-direction:column;gap:10px;margin-bottom:10px;"></div>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="addScheduleRow()">+ 일정 추가</button>
+      </div>
+    </div>
+    <div class="modal-ft"><button class="btn btn-ghost" onclick="closePkgModal()">취소</button><button class="btn btn-primary" id="pkg-save-btn" onclick="savePkg()">저장</button></div>
+  </div>
+</div>
+
+<!-- MODAL: 확인 -->
+<div class="modal-bg" id="confirm-modal">
+  <div class="modal" style="max-width:360px;">
+    <div class="modal-hd"><div class="modal-title">삭제 확인</div><button class="modal-x" onclick="closeConfirm()">×</button></div>
+    <div class="modal-body"><p id="confirm-msg" style="font-size:14px;line-height:1.7;color:#555;"></p></div>
+    <div class="modal-ft"><button class="btn btn-ghost" onclick="closeConfirm()">취소</button><button class="btn btn-danger" onclick="runConfirm()">삭제</button></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://axttgvyamhlzkcqmwqqc.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_DUZc64MUzs8KP0zySAmXBQ_3FPwDVZl';
+const ADMIN_PW    = 'admin12345';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// 모든 편집 가능한 설정 키 목록
+const SETTING_KEYS = [
+  'body_font','title_font',
+  'site_name','header_nav_text',
+  'hero_eyebrow','hero_title','hero_accent','hero_sub','hero_cta_text','scroll_hint_text','hero_img_url','hero_overlay',
+  'section_label','section_title','section_sub',
+  'price_label','reserve_btn_text','back_to_home_text',
+  'footer_desc','footer_copy',
+  'home_category_limit'
+];
+
+// 기본값
+const DEFAULTS = {
+  body_font: 'Noto Sans KR',
+  title_font: 'Noto Serif KR',
+  site_name: '체험 프로그램',
+  header_nav_text: '코스 보기',
+  hero_eyebrow: 'Special Experience Package',
+  hero_title: '특별한 순간을\\n당신과 함께',
+  hero_accent: '당신과 함께',
+  hero_sub: '자연 속 힐링부터 짜릿한 액티비티까지\\n잊을 수 없는 체험을 선물합니다',
+  hero_cta_text: '코스 둘러보기 ↓',
+  scroll_hint_text: 'SCROLL',
+  hero_img_url: '',
+  hero_overlay: '45',
+  section_label: 'Experience Course',
+  section_title: '원하는 코스를 선택하세요',
+  section_sub: '각 코스별로 엄선된 체험 패키지를 만나보세요',
+  price_label: '패키지 가격 (1인 기준)',
+  reserve_btn_text: '지금 예약하기',
+  back_to_home_text: '← 코스 목록으로',
+  footer_desc: '문의 및 예약 안내는 각 패키지 상세 페이지를 확인해주세요',
+  footer_copy: '© 2025 체험 프로그램. All rights reserved.',
+  home_category_limit: '3'
+};
+
+// 설정키 → input ID 매핑
+const KEY_TO_INPUT = {
+  body_font: 'body-font', title_font: 'title-font',
+  site_name: 'site-name', header_nav_text: 'header-nav-text',
+  hero_eyebrow: 'hero-eyebrow', hero_title: 'hero-title',
+  hero_accent: 'hero-accent', hero_sub: 'hero-sub',
+  hero_cta_text: 'hero-cta-text', scroll_hint_text: 'scroll-hint-text',
+  hero_img_url: 'hero-img-url',
+  hero_overlay: 'hero-overlay-hidden',
+  section_label: 'section-label', section_title: 'section-title', section_sub: 'section-sub',
+  price_label: 'price-label', reserve_btn_text: 'reserve-btn-text',
+  back_to_home_text: 'back-to-home-text',
+  footer_desc: 'footer-desc', footer_copy: 'footer-copy',
+  home_category_limit: 'cat-limit-input'
+};
+
+let cats = [];
+let pkgFilter = 'all';
+let confirmCb = null;
+let uploads = { hero: null, cat: null, pkg: null };
+
+
+// ── FONTS ──
+const BODY_FONTS = [
+  { name: 'Noto Sans KR', label: 'Noto Sans', sample: '자연 속 힐링' },
+  { name: 'Nanum Gothic', label: '나눔고딕', sample: '자연 속 힐링' },
+  { name: 'Nanum Barun Gothic', label: '나눔바른고딕', sample: '자연 속 힐링' },
+  { name: 'Nanum Myeongjo', label: '나눔명조', sample: '자연 속 힐링' },
+  { name: 'Spoqa Han Sans Neo', label: '스포카한산스', sample: '자연 속 힐링' },
+  { name: 'Gowun Dodum', label: '고운돋움', sample: '자연 속 힐링' },
+  { name: 'IBM Plex Sans KR', label: 'IBM Plex', sample: '자연 속 힐링' },
+  { name: 'Do Hyeon', label: '도현체', sample: '자연 속 힐링' },
+];
+const TITLE_FONTS = [
+  { name: 'Noto Serif KR', label: 'Noto Serif', sample: '특별한 순간' },
+  { name: 'Nanum Myeongjo', label: '나눔명조', sample: '특별한 순간' },
+  { name: 'Nanum Gothic', label: '나눔고딕', sample: '특별한 순간' },
+  { name: 'Black Han Sans', label: '블랙한산스', sample: '특별한 순간' },
+  { name: 'Gugi', label: '구기체', sample: '특별한 순간' },
+  { name: 'Gasoek One', label: '가솩원', sample: '특별한 순간' },
+  { name: 'Jua', label: '주아체', sample: '특별한 순간' },
+  { name: 'Gowun Batang', label: '고운바탕', sample: '특별한 순간' },
+];
+
+// 폰트 로드 & 렌더
+function loadFontLink(fontName) {
+  const id = 'gfont-' + fontName.replace(/\s/g, '-');
+  if (document.getElementById(id)) return;
+  const link = document.createElement('link');
+  link.id = id; link.rel = 'stylesheet';
+  link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(fontName)}:wght@400;700&display=swap`;
+  document.head.appendChild(link);
+}
+
+function renderFontGrid(gridId, hiddenId, fonts, selectedFont) {
+  const grid = document.getElementById(gridId);
+  fonts.forEach(f => loadFontLink(f.name));
+  grid.innerHTML = fonts.map(f => `
+    <div class="font-card ${selectedFont === f.name ? 'selected' : ''}"
+      onclick="selectFont(this,'${gridId}','${hiddenId}','${f.name}')"
+      style="font-family:'${f.name}',sans-serif;">
+      <div class="fname">${f.label}</div>
+      <div class="fsample">${f.sample}</div>
+    </div>`).join('');
+}
+
+function updateOverlayPreview(val) {
+  document.getElementById('overlay-val-display').textContent = val + '%';
+  const alpha = parseInt(val) / 100;
+  document.getElementById('overlay-preview').style.background = `rgba(0,0,0,${alpha})`;
+}
+
+function selectFont(el, gridId, hiddenId, fontName) {
+  document.getElementById(hiddenId).value = fontName;
+  document.querySelectorAll('#' + gridId + ' .font-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// ── LOGIN ──
+function doLogin() {
+  const pw = document.getElementById('pw-input').value;
+  if (pw === ADMIN_PW) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('admin-screen').style.display = 'block';
+    showTab('hero');
+    // 폰트 그리드 먼저 초기 렌더 (DB 로드 전에도 보이게)
+    renderFontGrid('body-font-grid', 'body-font', BODY_FONTS, 'Noto Sans KR');
+    renderFontGrid('title-font-grid', 'title-font', TITLE_FONTS, 'Noto Serif KR');
+    loadAll();
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+    document.getElementById('pw-input').value = '';
+    document.getElementById('pw-input').focus();
+  }
+}
+function doLogout() {
+  document.getElementById('admin-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('pw-input').value = '';
+}
+
+// ── TABS ──
+const TABS = ['hero','settings','categories','packages'];
+function showTab(tab) {
+  TABS.forEach(t => {
+    document.getElementById('tab-'+t).style.display = t===tab ? 'block' : 'none';
+    document.getElementById('nav-'+t).classList.toggle('active', t===tab);
+  });
+}
+
+// ── LOAD ALL ──
+async function loadAll() {
+  await Promise.all([loadSettings(), loadCategories()]);
+  await loadPackages();
+}
+
+// ── SETTINGS ──
+async function loadSettings() {
+  const { data, error } = await sb.from('site_settings').select('*');
+  if (error) { console.error(error); return; }
+  const map = {};
+  (data||[]).forEach(s => map[s.key] = s.value);
+
+  // 각 키를 input에 채우기 (DB값 없으면 기본값)
+  Object.entries(KEY_TO_INPUT).forEach(([key, inputId]) => {
+    const el = document.getElementById(inputId);
+    if (!el) return;
+    el.value = map[key] !== undefined ? map[key] : (DEFAULTS[key] || '');
+  });
+
+  // 폰트 그리드 렌더링
+  const bodyFont = map['body_font'] || 'Noto Sans KR';
+  const titleFont = map['title_font'] || 'Noto Serif KR';
+  document.getElementById('body-font').value = bodyFont;
+  document.getElementById('title-font').value = titleFont;
+  renderFontGrid('body-font-grid', 'body-font', BODY_FONTS, bodyFont);
+  renderFontGrid('title-font-grid', 'title-font', TITLE_FONTS, titleFont);
+
+  // 오버레이 슬라이더 값 적용
+  const overlayVal = map['hero_overlay'] || '45';
+  const overlaySlider = document.getElementById('hero-overlay');
+  if (overlaySlider) {
+    overlaySlider.value = overlayVal;
+    document.getElementById('overlay-val-display').textContent = overlayVal + '%';
+    const alpha = parseInt(overlayVal) / 100;
+    document.getElementById('overlay-preview').style.background = `rgba(0,0,0,${alpha})`;
+  }
+
+  // 히어로 이미지 미리보기
+  const imgUrl = map['hero_img_url'] || '';
+  if (imgUrl) {
+    const prev = document.getElementById('hero-img-preview');
+    prev.src = imgUrl; prev.style.display = 'block';
+  }
+}
+
+async function upsert(key, value) {
+  return sb.from('site_settings').upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+}
+
+async function saveHero() {
+  const btn = document.querySelector('[onclick="saveHero()"]');
+  btn.disabled = true; btn.textContent = '저장 중...';
+
+  // 이미지 업로드 처리
+  let imgUrl = document.getElementById('hero-img-url').value;
+  if (uploads.hero) {
+    imgUrl = await uploadImg(uploads.hero, 'hero-prog', 'hero-bar');
+    if (!imgUrl) { btn.disabled=false; btn.textContent='💾 전체 저장'; return; }
+    uploads.hero = null;
+  }
+
+  // 모든 설정 저장 (hero-img-url, home_category_limit 제외한 텍스트 필드들)
+  const textKeys = Object.entries(KEY_TO_INPUT).filter(([k]) => k !== 'hero_img_url' && k !== 'home_category_limit' && k !== 'hero_overlay' && k !== 'body_font' && k !== 'title_font');
+  const ops = textKeys.map(([key, inputId]) => {
+    const el = document.getElementById(inputId);
+    return el ? upsert(key, el.value) : Promise.resolve({});
+  });
+  // 이미지 URL이 실제로 있을 때만 저장 (빈값으로 덮어쓰기 방지)
+  if (imgUrl) ops.push(upsert('hero_img_url', imgUrl));
+  // 폰트 저장
+  const bodyFontVal = document.getElementById('body-font').value;
+  const titleFontVal = document.getElementById('title-font').value;
+  if (bodyFontVal) ops.push(upsert('body_font', bodyFontVal));
+  // 오버레이 강도 저장
+  const overlaySliderEl = document.getElementById('hero-overlay');
+  if (overlaySliderEl) ops.push(upsert('hero_overlay', overlaySliderEl.value));
+  if (titleFontVal) ops.push(upsert('title_font', titleFontVal));
+
+  const results = await Promise.all(ops);
+  const err = results.find(r => r.error);
+  btn.disabled=false; btn.textContent='💾 전체 저장';
+  if (err) { toast('저장 실패: '+err.error.message, 'err'); return; }
+  toast('메인 페이지 설정을 저장했습니다 ✓');
+}
+
+async function saveCatLimit() {
+  const val = parseInt(document.getElementById('cat-limit-input').value);
+  if (!val || val < 1) { toast('1 이상의 숫자를 입력하세요', 'err'); return; }
+  const { error } = await upsert('home_category_limit', String(val));
+  if (error) { toast('저장 실패: '+error.message, 'err'); return; }
+  toast(`홈 화면에 코스 ${val}개가 표시됩니다 ✓`);
+}
+
+// ── CATEGORIES ──
+async function loadCategories() {
+  const { data, error } = await sb.from('categories').select('*').order('sort_order');
+  if (error) console.error(error);
+  cats = data || [];
+  renderCatList(); renderFilterTabs(); renderCatSelect();
+}
+
+function renderCatList() {
+  const el = document.getElementById('cat-list');
+  if (!cats.length) { el.innerHTML='<div class="empty"><div class="ico">🌿</div><p>등록된 코스가 없습니다</p></div>'; return; }
+  el.innerHTML = cats.map(c => `
+    <div class="cat-item">
+      ${c.cover_image_url ? `<img class="cat-thumb" src="${h(c.cover_image_url)}" alt="">` : `<div class="cat-thumb-ph">🌿</div>`}
+      <div class="cat-name">${h(c.name)}</div>
+      <span class="cat-order-badge">순서 ${c.sort_order}</span>
+      <div class="actions">
+        <button class="btn btn-ghost btn-sm" onclick='editCat(${JSON.stringify(c)})'>수정</button>
+        <button class="btn btn-danger btn-sm" onclick="delCat('${c.id}','${h(c.name)}')">삭제</button>
+      </div>
+    </div>`).join('');
+}
+
+function renderCatSelect() {
+  document.getElementById('pkg-cat-id').innerHTML = cats.map(c => `<option value="${c.id}">${h(c.name)}</option>`).join('');
+}
+
+function renderFilterTabs() {
+  document.getElementById('filter-tabs').innerHTML =
+    `<button class="ftab ${pkgFilter==='all'?'active':''}" onclick="setFilter('all')">전체</button>` +
+    cats.map(c => `<button class="ftab ${pkgFilter===c.id?'active':''}" onclick="setFilter('${c.id}')">${h(c.name)}</button>`).join('');
+}
+
+// ── CATEGORY MODAL ──
+function openCatModal(edit=false) {
+  if (!edit) {
+    document.getElementById('cat-modal-title').textContent = '코스 추가';
+    document.getElementById('cat-id').value = '';
+    document.getElementById('cat-name').value = '';
+    document.getElementById('cat-order').value = cats.length + 1;
+    document.getElementById('cat-img-url').value = '';
+    document.getElementById('cat-img-preview').style.display = 'none';
+    uploads.cat = null;
+  }
+  document.getElementById('cat-modal').classList.add('open');
+}
+function closeCatModal() { document.getElementById('cat-modal').classList.remove('open'); }
+
+function editCat(c) {
+  document.getElementById('cat-modal-title').textContent = '코스 수정';
+  document.getElementById('cat-id').value = c.id;
+  document.getElementById('cat-name').value = c.name;
+  document.getElementById('cat-order').value = c.sort_order;
+  document.getElementById('cat-img-url').value = c.cover_image_url || '';
+  const prev = document.getElementById('cat-img-preview');
+  if (c.cover_image_url) { prev.src=c.cover_image_url; prev.style.display='block'; } else prev.style.display='none';
+  uploads.cat = null;
+  openCatModal(true);
+}
+
+async function saveCat() {
+  const name = document.getElementById('cat-name').value.trim();
+  if (!name) { toast('코스 이름을 입력하세요', 'err'); return; }
+  const btn = document.getElementById('cat-save-btn');
+  btn.disabled=true; btn.textContent='저장 중...';
+  let imgUrl = document.getElementById('cat-img-url').value;
+  if (uploads.cat) { imgUrl = await uploadImg(uploads.cat,'cat-prog','cat-bar'); if(!imgUrl){btn.disabled=false;btn.textContent='저장';return;} uploads.cat=null; }
+  const id = document.getElementById('cat-id').value;
+  const payload = { name, sort_order: parseInt(document.getElementById('cat-order').value)||1, cover_image_url: imgUrl||null };
+  const { error } = id ? await sb.from('categories').update(payload).eq('id',id) : await sb.from('categories').insert(payload);
+  btn.disabled=false; btn.textContent='저장';
+  if (error) { toast('저장 실패: '+error.message,'err'); return; }
+  toast(id?'코스를 수정했습니다 ✓':'코스를 추가했습니다 ✓');
+  closeCatModal(); await loadCategories(); await loadPackages();
+}
+
+async function delCat(id, name) {
+  confirm_(`"${name}" 코스를 삭제하면 해당 코스의 모든 패키지도 삭제됩니다. 계속하시겠습니까?`, async () => {
+    const { error } = await sb.from('categories').delete().eq('id', id);
+    if (error) { toast('삭제 실패','err'); return; }
+    toast('코스를 삭제했습니다'); await loadCategories(); await loadPackages();
+  });
+}
+
+// ── PACKAGES ──
+async function loadPackages() {
+  let q = sb.from('packages').select('*, categories(name)').order('sort_order');
+  if (pkgFilter !== 'all') q = q.eq('category_id', pkgFilter);
+  const { data, error } = await q;
+  if (error) console.error(error);
+  renderPkgTable(data||[]);
+}
+
+function setFilter(id) { pkgFilter=id; renderFilterTabs(); loadPackages(); }
+
+function renderPkgTable(pkgs) {
+  const el = document.getElementById('pkg-list');
+  if (!pkgs.length) {
+    el.innerHTML = '<div class="empty"><div class="ico">📦</div><p>등록된 패키지가 없습니다<br><small style="font-size:12px;">위의 "+ 패키지 추가" 버튼을 눌러 추가하세요</small></p></div>';
+    return;
+  }
+  el.innerHTML = `<div class="tbl-wrap"><table>
+    <thead><tr><th>이미지</th><th>제목</th><th>코스</th><th>가격</th><th>예약 URL</th><th>순서</th><th>관리</th></tr></thead>
+    <tbody>${pkgs.map(p=>`
+      <tr>
+        <td>${p.image_url?`<img class="pkg-thumb" src="${h(p.image_url)}" alt="">`:`<div class="pkg-thumb-ph">📷</div>`}</td>
+        <td class="pkg-title-td"><div class="t">${h(p.title)}</div></td>
+        <td><span class="badge" style="background:#e8f3ec;color:var(--moss);">${h(p.categories?.name||'')}</span></td>
+        <td class="price-td">${Number(p.price).toLocaleString()}원</td>
+        <td class="url-td">${p.reserve_url?`<a href="${h(p.reserve_url)}" target="_blank">🔗 링크 있음</a>`:`<span class="no-url">미설정</span>`}</td>
+        <td>${p.sort_order}</td>
+        <td><div class="actions">
+          <button class="btn btn-ghost btn-sm" onclick='editPkg(${JSON.stringify(p)})'>수정</button>
+          <button class="btn btn-danger btn-sm" onclick="delPkg('${p.id}','${h(p.title).substring(0,15)}')">삭제</button>
+        </div></td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+// ── PACKAGE MODAL ──
+function openPkgModal(edit=false) {
+  if (!edit) {
+    document.getElementById('pkg-modal-title').textContent='패키지 추가';
+    ['pkg-id','pkg-title','pkg-price','pkg-reserve-url','pkg-desc','pkg-img-url'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('pkg-order').value=1;
+    document.getElementById('pkg-img-preview').style.display='none';
+    uploads.pkg=null;
+    document.getElementById('extra-imgs-list').innerHTML='';
+    document.getElementById('schedule-list-admin').innerHTML='';
+    document.getElementById('add-extra-img-btn').style.display='';
+  }
+  document.getElementById('pkg-modal').classList.add('open');
+}
+function closePkgModal() { document.getElementById('pkg-modal').classList.remove('open'); }
+
+function editPkg(p) {
+  document.getElementById('pkg-modal-title').textContent='패키지 수정';
+  document.getElementById('pkg-id').value=p.id;
+  document.getElementById('pkg-cat-id').value=p.category_id;
+  document.getElementById('pkg-title').value=p.title;
+  document.getElementById('pkg-price').value=p.price;
+  document.getElementById('pkg-reserve-url').value=p.reserve_url||'';
+  document.getElementById('pkg-desc').value=p.description||'';
+  document.getElementById('pkg-order').value=p.sort_order;
+  document.getElementById('pkg-img-url').value=p.image_url||'';
+  const prev=document.getElementById('pkg-img-preview');
+  if(p.image_url){prev.src=p.image_url;prev.style.display='block';}else prev.style.display='none';
+  uploads.pkg=null;
+  // 추가 이미지 로드
+  document.getElementById('extra-imgs-list').innerHTML='';
+  document.getElementById('add-extra-img-btn').style.display='';
+  sb.from('package_images').select('*').eq('package_id',p.id).order('sort_order').then(({data})=>{
+    (data||[]).forEach(img => addExtraImgRow(img.id, img.image_url));
+    updateAddImgBtn();
+  });
+  // 일정 로드
+  document.getElementById('schedule-list-admin').innerHTML='';
+  sb.from('package_schedules').select('*').eq('package_id',p.id).order('day_number').order('sort_order').then(({data})=>{
+    (data||[]).forEach(s => addScheduleRow(s.id, s.day_number, s.day_label, s.content));
+  });
+  openPkgModal(true);
+}
+
+async function savePkg() {
+  const title=document.getElementById('pkg-title').value.trim();
+  const price=parseInt(document.getElementById('pkg-price').value);
+  const catId=document.getElementById('pkg-cat-id').value;
+  if(!title){toast('패키지 제목을 입력하세요','err');return;}
+  if(!price||price<0){toast('올바른 가격을 입력하세요','err');return;}
+  if(!catId){toast('코스를 선택하세요','err');return;}
+  const btn=document.getElementById('pkg-save-btn');
+  btn.disabled=true;btn.textContent='저장 중...';
+  let imgUrl=document.getElementById('pkg-img-url').value;
+  if(uploads.pkg){imgUrl=await uploadImg(uploads.pkg,'pkg-prog','pkg-bar');if(!imgUrl){btn.disabled=false;btn.textContent='저장';return;}uploads.pkg=null;}
+  const id=document.getElementById('pkg-id').value;
+  const payload={category_id:catId,title,price,reserve_url:document.getElementById('pkg-reserve-url').value.trim()||null,description:document.getElementById('pkg-desc').value.trim()||null,sort_order:parseInt(document.getElementById('pkg-order').value)||1,image_url:imgUrl||null};
+  const{error}=id?await sb.from('packages').update(payload).eq('id',id):await sb.from('packages').insert(payload);
+  btn.disabled=false;btn.textContent='저장';
+  if(error){toast('저장 실패: '+error.message,'err');return;}
+  const savedId = id || savedPkg?.id;
+  // 저장된 패키지 ID 가져오기
+  let pkgId = id;
+  if (!pkgId) {
+    const {data:newPkg} = await sb.from('packages').select('id').eq('category_id',catId).eq('title',title).order('created_at',{ascending:false}).limit(1);
+    pkgId = newPkg?.[0]?.id;
+  }
+  if (pkgId) {
+    await saveExtraImages(pkgId);
+    await saveSchedules(pkgId);
+  }
+  toast(id?'패키지를 수정했습니다 ✓':'패키지를 추가했습니다 ✓');
+  closePkgModal();loadPackages();
+}
+
+async function delPkg(id, name) {
+  confirm_(`"${name}..." 패키지를 삭제하시겠습니까?`, async () => {
+    const{error}=await sb.from('packages').delete().eq('id',id);
+    if(error){toast('삭제 실패','err');return;}
+    toast('패키지를 삭제했습니다');loadPackages();
+  });
+}
+
+
+// ── EXTRA IMAGES ──
+let extraImgUploads = {}; // rowId -> File
+
+function addExtraImgRow(dbId='', existingUrl='') {
+  const list = document.getElementById('extra-imgs-list');
+  if (list.children.length >= 4) return; // 대표 포함 5장 = 추가는 최대 4개
+  const rowId = 'eimg-' + Date.now() + Math.random().toString(36).substr(2,4);
+  const row = document.createElement('div');
+  row.className = 'extra-img-row';
+  row.id = rowId;
+  row.dataset.dbId = dbId;
+  row.dataset.url = existingUrl;
+  row.innerHTML = `
+    <img class="extra-img-thumb" id="${rowId}-thumb" ${existingUrl ? `src="${existingUrl}" style="display:block;"` : ''}>
+    <div class="extra-img-info">${existingUrl ? existingUrl.split('/').pop() : '이미지를 선택하세요'}</div>
+    <label style="cursor:pointer;background:var(--border);border-radius:5px;padding:5px 10px;font-size:12px;white-space:nowrap;">
+      선택
+      <input type="file" accept="image/*" style="display:none;" onchange="onExtraImgSelect(event,'${rowId}')">
+    </label>
+    <button type="button" class="del-row-btn" onclick="delExtraImgRow('${rowId}','${dbId}')">×</button>`;
+  list.appendChild(row);
+  updateAddImgBtn();
+}
+
+function updateAddImgBtn() {
+  const list = document.getElementById('extra-imgs-list');
+  document.getElementById('add-extra-img-btn').style.display = list.children.length >= 4 ? 'none' : '';
+}
+
+function onExtraImgSelect(e, rowId) {
+  const file = e.target.files[0]; if (!file) return;
+  extraImgUploads[rowId] = file;
+  const thumb = document.getElementById(rowId+'-thumb');
+  const reader = new FileReader();
+  reader.onload = ev => { thumb.src = ev.target.result; thumb.style.display = 'block'; };
+  reader.readAsDataURL(file);
+  document.querySelector(`#${rowId} .extra-img-info`).textContent = file.name;
+}
+
+async function delExtraImgRow(rowId, dbId) {
+  if (dbId) await sb.from('package_images').delete().eq('id', dbId);
+  delete extraImgUploads[rowId];
+  document.getElementById(rowId)?.remove();
+  updateAddImgBtn();
+}
+
+async function saveExtraImages(pkgId) {
+  const rows = document.getElementById('extra-imgs-list').children;
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const rowId = row.id;
+    const dbId = row.dataset.dbId;
+    let url = row.dataset.url;
+    if (extraImgUploads[rowId]) {
+      url = await uploadImg(extraImgUploads[rowId], 'pkg-prog', 'pkg-bar');
+      delete extraImgUploads[rowId];
+    }
+    if (!url) continue;
+    if (dbId) {
+      await sb.from('package_images').update({image_url:url, sort_order:i+1}).eq('id',dbId);
+    } else {
+      await sb.from('package_images').insert({package_id:pkgId, image_url:url, sort_order:i+1});
+    }
+  }
+}
+
+// ── SCHEDULES ──
+function addScheduleRow(dbId='', dayNum=1, dayTitle='', content='') {
+  const list = document.getElementById('schedule-list-admin');
+  const rowId = 'sch-' + Date.now() + Math.random().toString(36).substr(2,4);
+  const row = document.createElement('div');
+  row.className = 'schedule-row';
+  row.id = rowId;
+  row.dataset.dbId = dbId;
+  row.innerHTML = `
+    <div class="schedule-row-hd">
+      <input type="number" class="schedule-day-input" value="${dayNum}" min="1" placeholder="일차" title="몇 일차">
+      <input type="text" class="schedule-title-input" value="${h(dayTitle)}" placeholder="지역/제목 (예: 서울/해남)">
+      <button type="button" class="del-row-btn" onclick="delScheduleRow('${rowId}','${dbId}')">×</button>
+    </div>
+    <textarea class="schedule-content-input" placeholder="일정 내용을 입력하세요&#10;예: [07:38] 서울 출발&#10;[12:00] 중식 (한정식)">${h(content)}</textarea>`;
+  list.appendChild(row);
+}
+
+function delScheduleRow(rowId, dbId) {
+  if (dbId) sb.from('package_schedules').delete().eq('id', dbId);
+  document.getElementById(rowId)?.remove();
+}
+
+async function saveSchedules(pkgId) {
+  const rows = document.getElementById('schedule-list-admin').children;
+  // 기존 일정 전체 삭제 후 재삽입 (순서 보장)
+  await sb.from('package_schedules').delete().eq('package_id', pkgId);
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const inputs = row.querySelectorAll('input,textarea');
+    const dayNum = parseInt(inputs[0].value) || 1;
+    const dayTitle = inputs[1].value.trim();
+    const content = inputs[2].value.trim();
+    if (!content) continue;
+    await sb.from('package_schedules').insert({package_id:pkgId, day_number:dayNum, day_label:dayTitle||null, content, sort_order:i+1});
+  }
+}
+
+// ── IMAGE UPLOAD ──
+function onFileSelect(e,prevId,key){const f=e.target.files[0];if(!f)return;uploads[key]=f;showPreview(f,prevId);}
+function onDragOver(e,areaId){e.preventDefault();document.getElementById(areaId).classList.add('over');}
+function onDragLeave(areaId){document.getElementById(areaId).classList.remove('over');}
+function onDrop(e,inputId,prevId,key){
+  e.preventDefault();
+  document.getElementById(inputId.replace('-input','-area'))?.classList.remove('over');
+  const f=e.dataTransfer.files[0];
+  if(!f||!f.type.startsWith('image/'))return;
+  uploads[key]=f;showPreview(f,prevId);
+}
+function showPreview(file,prevId){
+  const r=new FileReader();
+  r.onload=e=>{const el=document.getElementById(prevId);el.src=e.target.result;el.style.display='block';};
+  r.readAsDataURL(file);
+}
+async function uploadImg(file,progId,barId){
+  if(file.size>5*1024*1024){toast('파일 크기는 5MB 이하여야 합니다','err');return null;}
+  document.getElementById(progId).style.display='block';
+  const bar=document.getElementById(barId);
+  bar.style.width='30%';
+  const ext=file.name.split('.').pop();
+  const name=`${Date.now()}_${Math.random().toString(36).substr(2,5)}.${ext}`;
+  bar.style.width='70%';
+  const{data,error}=await sb.storage.from('package-images').upload(name,file,{contentType:file.type});
+  bar.style.width='100%';
+  setTimeout(()=>{document.getElementById(progId).style.display='none';bar.style.width='0%';},400);
+  if(error){toast('이미지 업로드 실패: '+error.message,'err');return null;}
+  return sb.storage.from('package-images').getPublicUrl(data.path).data.publicUrl;
+}
+
+// ── CONFIRM ──
+function confirm_(msg,cb){document.getElementById('confirm-msg').textContent=msg;confirmCb=cb;document.getElementById('confirm-modal').classList.add('open');}
+function closeConfirm(){document.getElementById('confirm-modal').classList.remove('open');confirmCb=null;}
+function runConfirm(){closeConfirm();if(confirmCb)confirmCb();}
+
+// ── TOAST ──
+function toast(msg,type='ok'){const el=document.getElementById('toast');el.textContent=msg;el.className=`show ${type}`;setTimeout(()=>el.className='',3000);}
+
+// ── UTIL ──
+function h(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+document.querySelectorAll('.modal-bg').forEach(bg=>bg.addEventListener('click',e=>{if(e.target===bg)bg.classList.remove('open');}));
+</script>
+</body>
+</html>
