@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title id="page-title">체험 프로그램</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link id="body-font-link" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link id="title-font-link" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&display=swap" rel="stylesheet">
+  <style id="font-style">
+    :root{--body-font:'Noto Sans KR';--title-font:'Noto Serif KR';}
+    body{font-family:var(--body-font),sans-serif !important;}
+    .hero-title,.section-title,.cat-name,.detail-title,.logo{font-family:var(--title-font),serif !important;}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root{
+      --forest:#2d4a3e;--moss:#4a7c59;--sage:#8fad88;
+      --sand:#e8dcc8;--cream:#f7f3ec;--ocean:#1a3a5c;
+      --gold:#c9a84c;--dark:#1a1a18;--white:#fff;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{background:var(--cream);color:var(--dark);overflow-x:hidden;}
+
+    /* ── LOADING ── */
+    #loading{position:fixed;inset:0;background:var(--forest);display:flex;align-items:center;justify-content:center;z-index:9999;transition:opacity .6s;}
+    #loading.fade-out{opacity:0;pointer-events:none;}
+    .loading-inner{text-align:center;color:var(--sand);}
+    .dot-row{display:flex;gap:8px;justify-content:center;margin-top:16px;}
+    .dot{width:8px;height:8px;border-radius:50%;background:var(--gold);animation:bounce 1.2s infinite;}
+    .dot:nth-child(2){animation-delay:.2s;}.dot:nth-child(3){animation-delay:.4s;}
+    @keyframes bounce{0%,80%,100%{transform:translateY(0);opacity:.4}40%{transform:translateY(-12px);opacity:1}}
+
+    /* ── HEADER ── */
+    header{position:fixed;top:0;left:0;right:0;z-index:200;padding:18px 32px;display:flex;align-items:center;justify-content:space-between;transition:all .4s;}
+    header.scrolled{background:rgba(255,255,255,.95);backdrop-filter:blur(12px);box-shadow:0 2px 20px rgba(0,0,0,.08);}
+    .logo{font-size:20px;font-weight:700;color:var(--white);cursor:pointer;transition:color .4s;}
+    header.scrolled .logo{color:var(--forest);}
+    .header-nav a{color:rgba(255,255,255,.85);text-decoration:none;font-size:14px;transition:color .3s;}
+    header.scrolled .header-nav a{color:var(--forest);}
+    body.page-pkg header,body.page-detail header{background:rgba(255,255,255,.95)!important;backdrop-filter:blur(12px);box-shadow:0 2px 20px rgba(0,0,0,.08);}
+    body.page-pkg header .logo,body.page-detail header .logo{color:var(--forest)!important;}
+    body.page-pkg header .header-nav a,body.page-detail header .header-nav a{color:var(--forest)!important;}
+
+    /* ── HERO ── */
+    #hero{position:relative;height:100vh;min-height:600px;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+    .hero-bg{position:absolute;inset:0;background:linear-gradient(135deg,var(--forest) 0%,var(--ocean) 60%,#0d2233 100%);}
+    .hero-bg::after{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none'%3E%3Cg fill='%23fff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");}
+    .hero-bg.has-img{background:none;}
+    .hero-bg.has-img::after{display:none;}
+    #hero-bg-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:0;}
+    .hero-img-overlay{position:absolute;inset:0;background:rgba(0,0,0,0);}
+    .hero-content{position:relative;z-index:2;text-align:center;color:var(--white);padding:0 24px;animation:heroFadeIn 1.2s ease forwards;}
+    @keyframes heroFadeIn{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+    .hero-eyebrow{font-size:12px;letter-spacing:4px;text-transform:uppercase;color:var(--gold);margin-bottom:20px;opacity:.9;}
+    .hero-title{font-size:clamp(36px,7vw,72px);font-weight:700;line-height:1.15;margin-bottom:20px;text-shadow:0 4px 24px rgba(0,0,0,.3);}
+    .hero-title span{color:var(--gold);}
+    .hero-sub{font-size:16px;font-weight:300;color:rgba(255,255,255,.75);margin-bottom:40px;line-height:1.7;}
+    .hero-cta{display:inline-block;background:var(--gold);color:var(--dark);padding:16px 40px;border-radius:50px;font-weight:700;font-size:15px;cursor:pointer;border:none;transition:transform .2s,box-shadow .2s;box-shadow:0 8px 24px rgba(201,168,76,.4);}
+    .hero-cta:hover{transform:translateY(-3px);box-shadow:0 12px 32px rgba(201,168,76,.5);}
+    .scroll-hint{position:absolute;bottom:32px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.5);font-size:12px;letter-spacing:2px;animation:scrollHint 2s infinite;}
+    @keyframes scrollHint{0%,100%{transform:translateX(-50%) translateY(0);opacity:.5}50%{transform:translateX(-50%) translateY(6px);opacity:1}}
+
+    /* ── SECTION ── */
+    section{padding:80px 24px;}
+    .section-label{font-size:11px;letter-spacing:4px;text-transform:uppercase;color:var(--gold);margin-bottom:12px;font-weight:500;}
+    .section-title{font-size:clamp(26px,4vw,40px);font-weight:700;color:var(--forest);line-height:1.3;margin-bottom:16px;}
+    .section-sub{font-size:15px;color:#666;line-height:1.8;max-width:500px;}
+    #categories{background:var(--cream);}
+    .categories-header{text-align:center;margin-bottom:56px;}
+    .categories-header .section-sub{margin:0 auto;}
+
+    /* ── CAT GRID ── */
+    .cat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:1100px;margin:0 auto;}
+    .cat-card{position:relative;border-radius:20px;overflow:hidden;height:420px;cursor:pointer;box-shadow:0 8px 32px rgba(0,0,0,.12);transition:transform .4s,box-shadow .4s;}
+    .cat-card:hover{transform:translateY(-8px);box-shadow:0 20px 48px rgba(0,0,0,.2);}
+    .cat-card img{width:100%;height:100%;object-fit:cover;transition:transform .6s;}
+    .cat-card:hover img{transform:scale(1.06);}
+    .cat-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.75) 0%,rgba(0,0,0,.1) 50%,transparent 100%);}
+    .cat-info{position:absolute;bottom:0;left:0;right:0;padding:32px 28px;color:var(--white);}
+    .cat-badge{display:inline-block;background:var(--gold);color:var(--dark);font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;letter-spacing:1px;margin-bottom:10px;}
+    .cat-name{font-size:24px;font-weight:700;line-height:1.3;margin-bottom:8px;}
+    .cat-meta{font-size:13px;color:rgba(255,255,255,.7);}
+    .cat-arrow{position:absolute;top:28px;right:28px;width:44px;height:44px;background:rgba(255,255,255,.15);backdrop-filter:blur(8px);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:18px;transition:background .3s,transform .3s;}
+    .cat-card:hover .cat-arrow{background:var(--gold);color:var(--dark);transform:rotate(45deg);}
+
+    /* ── PKG LIST VIEW ── */
+    #pkg-view{display:none;min-height:100vh;background:var(--cream);padding-top:140px;}
+    .pkg-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:0 24px 80px;align-items:flex-start;}
+
+    /* 사이드바 */
+    .pkg-sidebar{width:200px;flex-shrink:0;position:sticky;top:100px;}
+    .pkg-sidebar-title{font-size:11px;font-weight:700;color:var(--muted,#888);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;padding:0 4px;}
+    .pkg-sidebar-item{display:block;padding:10px 14px;border-radius:8px;font-size:14px;font-weight:500;color:#555;cursor:pointer;transition:all .2s;margin-bottom:4px;border:none;background:transparent;width:100%;text-align:left;}
+    .pkg-sidebar-item:hover{background:#e8f3ec;color:var(--forest);}
+    .pkg-sidebar-item.active{background:var(--forest);color:white;font-weight:600;}
+
+    /* 패키지 콘텐츠 */
+    .pkg-content{flex:1;min-width:0;}
+    .pkg-content-header{margin-bottom:28px;}
+    .back-link{display:inline-flex;align-items:center;gap:6px;color:var(--moss);font-size:14px;font-weight:500;cursor:pointer;margin-bottom:10px;}
+    .back-link:hover{text-decoration:underline;}
+    .pkg-view-title{font-size:clamp(22px,3vw,32px);font-weight:700;color:var(--forest);}
+    .pkg-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+    .pkg-card{background:var(--white);border-radius:16px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.07);cursor:pointer;transition:transform .3s,box-shadow .3s;}
+    .pkg-card:hover{transform:translateY(-6px);box-shadow:0 16px 40px rgba(0,0,0,.13);}
+    .pkg-img-wrap{position:relative;height:180px;overflow:hidden;}
+    .pkg-img-wrap img{width:100%;height:100%;object-fit:cover;transition:transform .5s;}
+    .pkg-card:hover .pkg-img-wrap img{transform:scale(1.07);}
+    .pkg-body{padding:16px;}
+    .pkg-title{font-size:14px;font-weight:500;color:#333;line-height:1.5;margin-bottom:12px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+    .pkg-price-row{display:flex;align-items:center;justify-content:space-between;}
+    .pkg-price{font-size:18px;font-weight:700;color:var(--forest);}
+    .pkg-price small{font-size:11px;color:#999;font-weight:400;}
+    .pkg-btn{background:var(--forest);color:white;border:none;padding:7px 14px;border-radius:16px;font-size:12px;font-weight:500;cursor:pointer;}
+    .pkg-btn:hover{background:var(--moss);}
+
+    /* ── DETAIL VIEW ── */
+    #detail-view{display:none;min-height:100vh;background:var(--cream);padding-top:80px;}
+    .detail-layout{display:flex;gap:24px;max-width:1200px;margin:0 auto;padding:32px 24px 80px;align-items:flex-start;}
+
+    /* 상세 사이드바 */
+    .detail-sidebar{width:200px;flex-shrink:0;position:sticky;top:100px;}
+
+    /* 상세 콘텐츠 */
+    .detail-content{flex:1;min-width:0;}
+    .detail-back-btn{display:inline-flex;align-items:center;gap:6px;color:var(--moss);font-size:14px;font-weight:500;cursor:pointer;margin-bottom:12px;border:none;background:none;padding:0;}
+    .detail-back-btn:hover{text-decoration:underline;}
+    .detail-category-tag{display:inline-block;background:var(--sage);color:white;font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;letter-spacing:.5px;margin-bottom:12px;}
+    .detail-title{font-size:clamp(20px,3vw,32px);font-weight:700;color:var(--forest);line-height:1.4;margin-bottom:24px;}
+
+    /* 이미지 슬라이더 */
+    .slider-wrap{position:relative;border-radius:16px;overflow:hidden;margin-bottom:24px;background:#ddd;aspect-ratio:16/9;}
+    .slider-track{display:flex;height:100%;transition:transform .4s ease;}
+    .slider-track img{min-width:100%;height:100%;object-fit:cover;flex-shrink:0;}
+    .slider-track .slider-placeholder{min-width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--moss),var(--forest));color:rgba(255,255,255,.3);font-size:48px;flex-shrink:0;}
+    .slider-btn{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.4);color:white;border:none;width:40px;height:40px;border-radius:50%;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s;z-index:2;}
+    .slider-btn:hover{background:rgba(0,0,0,.6);}
+    .slider-btn.prev{left:12px;}
+    .slider-btn.next{right:12px;}
+    .slider-dots{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:2;}
+    .slider-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.5);cursor:pointer;transition:background .2s;}
+    .slider-dot.active{background:white;}
+
+    /* 가격 박스 */
+    .detail-price-box{background:var(--white);border-radius:14px;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 4px 16px rgba(0,0,0,.07);margin-bottom:28px;flex-wrap:wrap;gap:14px;}
+    .detail-price-label{font-size:12px;color:#888;margin-bottom:3px;}
+    .detail-price-num{font-size:32px;font-weight:700;color:var(--forest);}
+    .detail-price-num small{font-size:14px;color:#999;font-weight:400;}
+    .reserve-btn{background:linear-gradient(135deg,var(--moss),var(--forest));color:white;border:none;padding:14px 32px;border-radius:50px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 8px 24px rgba(45,74,62,.35);transition:transform .2s,box-shadow .2s;text-decoration:none;display:inline-block;}
+    .reserve-btn:hover{transform:translateY(-3px);}
+
+    /* 탭 */
+    .detail-tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:2px solid #e8e0d0;}
+    .detail-tab{padding:10px 20px;font-size:14px;font-weight:600;border:none;background:none;cursor:pointer;color:#aaa;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .2s;font-family:inherit;}
+    .detail-tab.active{color:var(--forest);border-bottom-color:var(--forest);}
+    .detail-tab-panel{display:none;}
+    .detail-tab-panel.active{display:block;}
+    .detail-divider{border:none;border-top:1px solid #e8e0d0;margin:24px 0;}
+
+    /* 상세 설명 */
+    .detail-desc{font-size:15px;line-height:1.9;color:#555;white-space:pre-line;}
+
+    /* ── 일정 타임라인 ── */
+    .schedule-day-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:20px;}
+    .schedule-day-tab{padding:7px 16px;border-radius:20px;font-size:13px;font-weight:600;border:1.5px solid var(--border,#e0d8cc);background:white;cursor:pointer;color:#666;transition:all .2s;font-family:inherit;}
+    .schedule-day-tab.active{background:var(--forest);color:white;border-color:var(--forest);}
+    .schedule-day-panel{display:none;}
+    .schedule-day-panel.active{display:block;}
+    .timeline{position:relative;padding-left:24px;}
+    .timeline::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:#1a1a18;}
+    .timeline-content{font-size:14px;line-height:1.9;color:#444;white-space:pre-line;padding:4px 0 24px;}
+
+    /* 빈 상태 */
+    .empty-state{text-align:center;padding:60px 20px;color:#aaa;grid-column:1/-1;}
+    .empty-state .icon{font-size:40px;margin-bottom:12px;}
+
+    /* 푸터 */
+    footer{background:var(--forest);color:rgba(255,255,255,.6);text-align:center;padding:40px 24px;font-size:13px;line-height:2;}
+    footer strong{color:var(--gold);}
+
+    /* 토스트 */
+    #toast{position:fixed;bottom:32px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--dark);color:white;padding:12px 24px;border-radius:30px;font-size:14px;opacity:0;transition:all .3s;z-index:9998;pointer-events:none;}
+    #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+    /* ── 반응형 ── */
+    @media(max-width:900px){
+      .pkg-sidebar,.detail-sidebar{display:none;}
+      .pkg-layout,.detail-layout{padding:0 14px 60px;}
+      .pkg-grid{grid-template-columns:repeat(2,1fr);gap:12px;}
+    }
+    @media(max-width:640px){
+      header{padding:14px 18px;}
+      .cat-grid{grid-template-columns:repeat(3,1fr);gap:8px;}
+      .cat-card{height:160px;border-radius:10px;}
+      .cat-name{font-size:12px;}
+      .cat-badge{font-size:8px;padding:2px 6px;margin-bottom:4px;}
+      .cat-info{padding:10px 8px;}
+      .cat-arrow{width:26px;height:26px;top:6px;right:6px;font-size:11px;}
+      .pkg-grid{grid-template-columns:repeat(2,1fr);gap:10px;}
+      .pkg-img-wrap{height:100px;}
+      .pkg-body{padding:10px;}
+      .pkg-title{font-size:12px;}
+      .pkg-price{font-size:14px;}
+      .pkg-btn{font-size:10px;padding:5px 10px;}
+      .detail-price-box{flex-direction:column;align-items:flex-start;}
+      .slider-btn{width:32px;height:32px;font-size:16px;}
+    }
+  </style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="loading-inner">
+    <div id="loading-title" style="font-size:22px;letter-spacing:2px;">체험 프로그램</div>
+    <div class="dot-row"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  </div>
+</div>
+
+<header id="header">
+  <div class="logo" id="header-logo" onclick="goHome()">✦ 체험 프로그램</div>
+  <nav class="header-nav"><a id="header-nav-link" href="#categories" onclick="goHome()">코스 보기</a></nav>
+</header>
+
+<!-- ══ HOME ══ -->
+<div id="home-view">
+  <section id="hero">
+    <div class="hero-bg" id="hero-bg"></div>
+    <img id="hero-bg-img" src="" alt="">
+    <div class="hero-img-overlay" id="hero-img-overlay"></div>
+    <div class="hero-content">
+      <p class="hero-eyebrow" id="hero-eyebrow">Special Experience Package</p>
+      <h1 class="hero-title" id="hero-title">특별한 순간을<br><span>당신과 함께</span></h1>
+      <p class="hero-sub" id="hero-sub">자연 속 힐링부터 짜릿한 액티비티까지<br>잊을 수 없는 체험을 선물합니다</p>
+      <button class="hero-cta" id="hero-cta" onclick="document.getElementById('categories').scrollIntoView({behavior:'smooth'})">코스 둘러보기 ↓</button>
+    </div>
+    <div class="scroll-hint" id="scroll-hint">SCROLL</div>
+  </section>
+  <section id="categories">
+    <div class="categories-header">
+      <p class="section-label" id="section-label">Experience Course</p>
+      <h2 class="section-title" id="section-title">원하는 코스를 선택하세요</h2>
+      <p class="section-sub" id="section-sub">각 코스별로 엄선된 체험 패키지를 만나보세요</p>
+    </div>
+    <div class="cat-grid" id="cat-grid"></div>
+  </section>
+  <footer id="footer">
+    <strong id="footer-name">체험 프로그램</strong><br>
+    <span id="footer-desc">문의 및 예약 안내는 각 패키지 상세 페이지를 확인해주세요</span><br>
+    <span id="footer-copy">© 2025 체험 프로그램. All rights reserved.</span>
+  </footer>
+</div>
+
+<!-- ══ PKG LIST ══ -->
+<div id="pkg-view">
+  <div class="pkg-layout">
+    <!-- 사이드바 -->
+    <aside class="pkg-sidebar">
+      <div class="pkg-sidebar-title">코스 목록</div>
+      <div id="pkg-sidebar-list"></div>
+    </aside>
+    <!-- 콘텐츠 -->
+    <div class="pkg-content">
+      <div class="pkg-content-header">
+        <div class="back-link" id="back-to-home" onclick="goHome()">← 코스 목록으로</div>
+        <h2 class="pkg-view-title" id="pkg-view-title"></h2>
+      </div>
+      <div class="pkg-grid" id="pkg-grid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DETAIL ══ -->
+<div id="detail-view">
+  <div class="detail-layout">
+    <!-- 사이드바 -->
+    <aside class="detail-sidebar">
+      <div class="pkg-sidebar-title">코스 목록</div>
+      <div id="detail-sidebar-list"></div>
+    </aside>
+    <!-- 콘텐츠 -->
+    <div class="detail-content">
+      <button class="detail-back-btn" id="detail-back-btn">← 목록으로</button>
+      <div><span class="detail-category-tag" id="detail-cat-tag"></span></div>
+      <h1 class="detail-title" id="detail-title"></h1>
+
+      <!-- 이미지 슬라이더 -->
+      <div class="slider-wrap" id="slider-wrap">
+        <div class="slider-track" id="slider-track"></div>
+        <button class="slider-btn prev" id="slider-prev" onclick="slideMove(-1)">‹</button>
+        <button class="slider-btn next" id="slider-next" onclick="slideMove(1)">›</button>
+        <div class="slider-dots" id="slider-dots"></div>
+      </div>
+
+      <!-- 가격 + 예약 -->
+      <div class="detail-price-box">
+        <div>
+          <div class="detail-price-label" id="price-label">패키지 가격 (1인 기준)</div>
+          <div class="detail-price-num" id="detail-price"></div>
+        </div>
+        <a class="reserve-btn" id="reserve-btn" href="#" target="_blank" rel="noopener">지금 예약하기</a>
+      </div>
+
+      <!-- 탭: 상세설명 / 일정표 -->
+      <div class="detail-tabs">
+        <button class="detail-tab active" onclick="switchDetailTab('desc',this)">상세 설명</button>
+        <button class="detail-tab" onclick="switchDetailTab('schedule',this)">일정표</button>
+      </div>
+
+      <div class="detail-tab-panel active" id="tab-desc">
+        <p class="detail-desc" id="detail-desc"></p>
+      </div>
+
+      <div class="detail-tab-panel" id="tab-schedule">
+        <div class="schedule-day-tabs" id="schedule-day-tabs"></div>
+        <div id="schedule-panels"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://axttgvyamhlzkcqmwqqc.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_DUZc64MUzs8KP0zySAmXBQ_3FPwDVZl';
+const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let allCats = [];
+let currentCategoryId = null;
+let currentCategoryName = '';
+let sliderIndex = 0;
+let sliderTotal = 0;
+
+// ── HEADER SCROLL ──
+window.addEventListener('scroll', () => {
+  if (!document.body.classList.contains('page-pkg') && !document.body.classList.contains('page-detail')) {
+    document.getElementById('header').classList.toggle('scrolled', window.scrollY > 60);
+  }
+});
+
+// ── SETTINGS ──
+function applyText(id, value) { if (!value) return; const el = document.getElementById(id); if (el) el.textContent = value; }
+function applyHTML(id, value) { if (!value) return; const el = document.getElementById(id); if (el) el.innerHTML = value.replace(/\\n/g,'<br>'); }
+
+async function loadSettings() {
+  const { data } = await client.from('site_settings').select('*');
+  if (!data) return;
+  const get = k => data.find(s => s.key === k)?.value || '';
+
+  const limit = get('home_category_limit');
+  // (limit은 loadCategories에서 사용)
+  window._catLimit = parseInt(limit) || 3;
+
+  const siteName = get('site_name');
+  if (siteName) {
+    document.title = siteName;
+    document.getElementById('loading-title').textContent = siteName;
+    document.getElementById('header-logo').textContent = '✦ ' + siteName;
+    document.getElementById('footer-name').textContent = siteName;
+  }
+  applyText('header-nav-link', get('header_nav_text'));
+  applyText('hero-eyebrow', get('hero_eyebrow'));
+
+  const titleRaw = get('hero_title');
+  const accent   = get('hero_accent');
+  if (titleRaw) {
+    const lines = titleRaw.replace(/\\n/g,'\n').split('\n');
+    document.getElementById('hero-title').innerHTML = accent
+      ? lines.map(l => l.includes(accent) ? l.replace(accent,`<span>${accent}</span>`) : l).join('<br>')
+      : lines.join('<br>');
+  }
+  applyHTML('hero-sub', get('hero_sub'));
+  applyText('hero-cta', get('hero_cta_text'));
+  applyText('scroll-hint', get('scroll_hint_text'));
+
+  const heroImg = get('hero_img_url');
+  if (heroImg) {
+    const imgEl = document.getElementById('hero-bg-img');
+    imgEl.src = heroImg; imgEl.style.display = 'block';
+    document.getElementById('hero-bg').style.background = 'none';
+    document.getElementById('hero-bg').style.display = 'none';
+    const overlayPct = parseInt(get('hero_overlay') || '45');
+    document.getElementById('hero-img-overlay').style.background = `rgba(0,0,0,${overlayPct/100})`;
+  }
+
+  applyText('section-label', get('section_label'));
+  applyText('section-title', get('section_title'));
+  applyText('section-sub', get('section_sub'));
+  applyText('price-label', get('price_label'));
+  applyText('reserve-btn', get('reserve_btn_text'));
+  applyText('back-to-home', get('back_to_home_text') || '← 코스 목록으로');
+  applyText('footer-desc', get('footer_desc'));
+  applyText('footer-copy', get('footer_copy'));
+
+  // 글꼴
+  const bodyFont = get('body_font');
+  const titleFont = get('title_font');
+  if (bodyFont && bodyFont !== 'Noto Sans KR') {
+    document.getElementById('body-font-link').href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(bodyFont)}:wght@300;400;500;700&display=swap`;
+    document.documentElement.style.setProperty('--body-font', `'${bodyFont}'`);
+  }
+  if (titleFont && titleFont !== 'Noto Serif KR') {
+    document.getElementById('title-font-link').href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(titleFont)}:wght@400;600;700&display=swap`;
+    document.documentElement.style.setProperty('--title-font', `'${titleFont}'`);
+  }
+}
+
+// ── CATEGORIES ──
+async function loadCategories() {
+  const { data } = await client.from('categories').select('*').order('sort_order').limit(window._catLimit || 3);
+  allCats = data || [];
+  renderCatGrid();
+  renderSidebars();
+}
+
+function renderCatGrid() {
+  const colors = ['#2d4a3e','#1a3a5c','#4a3020','#3a2d4a'];
+  document.getElementById('cat-grid').innerHTML = allCats.length
+    ? allCats.map((cat, i) => `
+      <div class="cat-card" onclick="showPackages('${cat.id}','${esc(cat.name)}')">
+        ${cat.cover_image_url
+          ? `<img src="${cat.cover_image_url}" alt="${esc(cat.name)}" loading="lazy">`
+          : `<div style="width:100%;height:100%;background:${colors[i%colors.length]};"></div>`}
+        <div class="cat-overlay"></div>
+        <div class="cat-arrow">→</div>
+        <div class="cat-info">
+          <span class="cat-badge">COURSE ${String.fromCharCode(65+i)}</span>
+          <div class="cat-name">${esc(cat.name)}</div>
+          <div class="cat-meta">패키지 보기 →</div>
+        </div>
+      </div>`).join('')
+    : `<div class="empty-state"><div class="icon">🌿</div><p>등록된 코스가 없습니다</p></div>`;
+}
+
+function renderSidebars() {
+  const html = allCats.map(cat => `
+    <button class="pkg-sidebar-item ${cat.id === currentCategoryId ? 'active' : ''}"
+      onclick="showPackages('${cat.id}','${esc(cat.name)}')">${esc(cat.name)}</button>`).join('');
+  document.getElementById('pkg-sidebar-list').innerHTML = html;
+  document.getElementById('detail-sidebar-list').innerHTML = html;
+}
+
+// ── PACKAGES ──
+async function showPackages(categoryId, categoryName) {
+  currentCategoryId = categoryId;
+  currentCategoryName = categoryName;
+  switchView('pkg-view');
+  document.getElementById('pkg-view-title').textContent = categoryName;
+  document.getElementById('pkg-grid').innerHTML = `<div class="empty-state" style="grid-column:1/-1"><p>불러오는 중...</p></div>`;
+  renderSidebars();
+
+  const { data } = await client.from('packages').select('*').eq('category_id', categoryId).order('sort_order');
+  if (!data?.length) {
+    document.getElementById('pkg-grid').innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="icon">📦</div><p>등록된 패키지가 없습니다</p></div>`;
+    return;
+  }
+  document.getElementById('pkg-grid').innerHTML = data.map(pkg => `
+    <div class="pkg-card" onclick='showDetail(${JSON.stringify(pkg)})'>
+      <div class="pkg-img-wrap">
+        ${pkg.image_url
+          ? `<img src="${pkg.image_url}" alt="${esc(pkg.title)}" loading="lazy">`
+          : `<div style="width:100%;height:100%;background:linear-gradient(135deg,#4a7c59,#2d4a3e);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.3);font-size:32px;">🌿</div>`}
+      </div>
+      <div class="pkg-body">
+        <div class="pkg-title">${esc(pkg.title)}</div>
+        <div class="pkg-price-row">
+          <div class="pkg-price">${Number(pkg.price).toLocaleString()}<small>원~</small></div>
+          <button class="pkg-btn">상세보기</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// ── DETAIL ──
+async function showDetail(pkg) {
+  switchView('detail-view');
+  document.getElementById('detail-cat-tag').textContent = currentCategoryName;
+  document.getElementById('detail-title').textContent = pkg.title;
+  document.getElementById('detail-price').innerHTML = `${Number(pkg.price).toLocaleString()}<small>원~</small>`;
+  document.getElementById('detail-desc').textContent = pkg.description || '상세 설명이 준비 중입니다.';
+  document.getElementById('detail-back-btn').onclick = () => showPackages(currentCategoryId, currentCategoryName);
+  renderSidebars();
+
+  // 예약 버튼
+  const rb = document.getElementById('reserve-btn');
+  if (pkg.reserve_url) { rb.href = pkg.reserve_url; rb.onclick = null; }
+  else { rb.href='#'; rb.onclick = e => { e.preventDefault(); showToast('예약 문의는 연락처로 문의해주세요 😊'); }; }
+
+  // 이미지 슬라이더 로드
+  await loadSlider(pkg.id, pkg.image_url);
+
+  // 일정 로드
+  await loadSchedule(pkg.id);
+
+  // 탭 초기화
+  switchDetailTab('desc', document.querySelector('.detail-tab'));
+  window.scrollTo(0,0);
+}
+
+// ── SLIDER ──
+async function loadSlider(pkgId, fallbackImg) {
+  const { data } = await client.from('package_images').select('*').eq('package_id', pkgId).order('sort_order');
+  let images = data?.map(d => d.image_url) || [];
+  if (!images.length && fallbackImg) images = [fallbackImg];
+  if (!images.length) images = [''];
+
+  sliderIndex = 0;
+  sliderTotal = images.length;
+
+  document.getElementById('slider-track').innerHTML = images.map(url =>
+    url ? `<img src="${url}" alt="">` : `<div class="slider-placeholder">🌿</div>`
+  ).join('');
+
+  document.getElementById('slider-prev').style.display = images.length > 1 ? 'flex' : 'none';
+  document.getElementById('slider-next').style.display = images.length > 1 ? 'flex' : 'none';
+
+  document.getElementById('slider-dots').innerHTML = images.length > 1
+    ? images.map((_,i) => `<div class="slider-dot ${i===0?'active':''}" onclick="slideTo(${i})"></div>`).join('')
+    : '';
+
+  slideTo(0);
+}
+
+function slideMove(dir) {
+  slideTo((sliderIndex + dir + sliderTotal) % sliderTotal);
+}
+function slideTo(idx) {
+  sliderIndex = idx;
+  document.getElementById('slider-track').style.transform = `translateX(-${idx*100}%)`;
+  document.querySelectorAll('.slider-dot').forEach((d,i) => d.classList.toggle('active', i===idx));
+}
+
+// ── SCHEDULE ──
+async function loadSchedule(pkgId) {
+  const { data } = await client.from('package_schedules').select('*').eq('package_id', pkgId).order('day_number').order('sort_order');
+
+  const tabsEl = document.getElementById('schedule-day-tabs');
+  const panelsEl = document.getElementById('schedule-panels');
+
+  if (!data?.length) {
+    tabsEl.innerHTML = '';
+    panelsEl.innerHTML = '<p style="color:#aaa;font-size:14px;padding:20px 0;">등록된 일정이 없습니다</p>';
+    return;
+  }
+
+  // 일차별로 그룹핑
+  const days = {};
+  data.forEach(s => {
+    const key = s.day_number;
+    if (!days[key]) days[key] = { label: s.day_label || `${s.day_number}일차`, items: [] };
+    days[key].items.push(s.content);
+  });
+
+  const dayKeys = Object.keys(days).sort((a,b) => a-b);
+
+  tabsEl.innerHTML = dayKeys.map((k, i) => `
+    <button class="schedule-day-tab ${i===0?'active':''}"
+      onclick="switchScheduleDay('${k}',this)">${days[k].label}</button>`).join('');
+
+  panelsEl.innerHTML = dayKeys.map((k, i) => `
+    <div class="schedule-day-panel ${i===0?'active':''}" id="schedule-day-${k}">
+      <div class="timeline">
+        <div class="timeline-content">${days[k].items.join('\n\n')}</div>
+      </div>
+    </div>`).join('');
+}
+
+function switchScheduleDay(key, btn) {
+  document.querySelectorAll('.schedule-day-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.schedule-day-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('schedule-day-'+key)?.classList.add('active');
+}
+
+function switchDetailTab(tab, btn) {
+  document.querySelectorAll('.detail-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.detail-tab-panel').forEach(p => p.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  else document.querySelector('.detail-tab')?.classList.add('active');
+  document.getElementById('tab-'+tab)?.classList.add('active');
+}
+
+// ── NAVIGATION ──
+function switchView(viewId) {
+  ['home-view','pkg-view','detail-view'].forEach(id => {
+    document.getElementById(id).style.display = id === viewId ? 'block' : 'none';
+  });
+  window.scrollTo(0,0);
+  const header = document.getElementById('header');
+  document.body.classList.remove('page-pkg','page-detail');
+  if (viewId === 'home-view') {
+    header.classList.toggle('scrolled', window.scrollY > 60);
+  } else if (viewId === 'pkg-view') {
+    header.classList.add('scrolled'); document.body.classList.add('page-pkg');
+  } else {
+    header.classList.add('scrolled'); document.body.classList.add('page-detail');
+  }
+}
+
+function goHome() {
+  switchView('home-view');
+  setTimeout(() => document.getElementById('categories').scrollIntoView({behavior:'smooth'}), 50);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── INIT ──
+window.addEventListener('load', async () => {
+  await loadSettings();
+  await loadCategories();
+  const loading = document.getElementById('loading');
+  loading.classList.add('fade-out');
+  setTimeout(() => loading.style.display='none', 700);
+  switchView('home-view');
+});
+</script>
+</body>
+</html>
