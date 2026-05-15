@@ -4,10 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>관리자 페이지</title>
+  <!-- Adobe Fonts -->
+  <link rel="stylesheet" href="https://use.typekit.net/yia4dig.css">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    :root{--forest:#2d4a3e;--moss:#4a7c59;--gold:#c9a84c;--cream:#f7f3ec;--danger:#e05252;--border:#e0d8cc;--text:#2a2a28;--muted:#888;--sidebar:#1e3530;}
+    :root{--forest:#203e15;--moss:#3e7936;--gold:#e4a800;--cream:#f5f9ff;--danger:#e05252;--border:#d8e8cc;--text:#2a2a28;--muted:#888;--sidebar:#162b0f;--ocean:#0094c9;--sage:#bcc863;--brown:#bb7b33;}
     *{margin:0;padding:0;box-sizing:border-box;}
     body{font-family:'Noto Sans KR',sans-serif;background:var(--cream);color:var(--text);}
 
@@ -587,28 +589,35 @@ let uploads = { hero: null, cat: null, pkg: null };
 
 // ── FONTS ──
 const BODY_FONTS = [
+  { name: 'rix-jongno-pro', label: 'RixJongno Pro', sample: '미탄 아웃도어', adobe: true },
+  { name: 'sandoll-gothicneo3', label: 'Sandoll GothicNeo3', sample: '미탄 아웃도어', adobe: true },
+  { name: 'rix-jongno-pro', label: 'RixJongno Pro', sample: '미탄 아웃도어', adobe: true },
+  { name: 'neighbor', label: 'Neighbor Stencil', sample: 'Outdoor Village', adobe: true },
+  { name: 'posterama-2001', label: 'Posterama 2001', sample: 'Outdoor Village', adobe: true },
   { name: 'Noto Sans KR', label: 'Noto Sans', sample: '자연 속 힐링' },
   { name: 'Nanum Gothic', label: '나눔고딕', sample: '자연 속 힐링' },
   { name: 'Nanum Barun Gothic', label: '나눔바른고딕', sample: '자연 속 힐링' },
-  { name: 'Nanum Myeongjo', label: '나눔명조', sample: '자연 속 힐링' },
-  { name: 'Spoqa Han Sans Neo', label: '스포카한산스', sample: '자연 속 힐링' },
   { name: 'Gowun Dodum', label: '고운돋움', sample: '자연 속 힐링' },
   { name: 'IBM Plex Sans KR', label: 'IBM Plex', sample: '자연 속 힐링' },
   { name: 'Do Hyeon', label: '도현체', sample: '자연 속 힐링' },
 ];
 const TITLE_FONTS = [
+  { name: 'rix-jongno-pro', label: 'RixJongno Pro', sample: '미탄 아웃도어', adobe: true },
+  { name: 'sandoll-gothicneo3', label: 'Sandoll GothicNeo3', sample: '미탄 아웃도어', adobe: true },
+  { name: 'rix-jongno-pro', label: 'RixJongno Pro', sample: '미탄 아웃도어', adobe: true },
+  { name: 'neighbor', label: 'Neighbor Stencil', sample: 'Outdoor Village', adobe: true },
+  { name: 'posterama-2001', label: 'Posterama 2001', sample: 'Outdoor Village', adobe: true },
   { name: 'Noto Serif KR', label: 'Noto Serif', sample: '특별한 순간' },
   { name: 'Nanum Myeongjo', label: '나눔명조', sample: '특별한 순간' },
-  { name: 'Nanum Gothic', label: '나눔고딕', sample: '특별한 순간' },
   { name: 'Black Han Sans', label: '블랙한산스', sample: '특별한 순간' },
   { name: 'Gugi', label: '구기체', sample: '특별한 순간' },
-  { name: 'Gasoek One', label: '가솩원', sample: '특별한 순간' },
   { name: 'Jua', label: '주아체', sample: '특별한 순간' },
   { name: 'Gowun Batang', label: '고운바탕', sample: '특별한 순간' },
 ];
 
 // 폰트 로드 & 렌더
-function loadFontLink(fontName) {
+function loadFontLink(fontName, isAdobe) {
+  if (isAdobe) return; // Adobe Fonts는 이미 head에 로드됨
   const id = 'gfont-' + fontName.replace(/\s/g, '-');
   if (document.getElementById(id)) return;
   const link = document.createElement('link');
@@ -619,7 +628,7 @@ function loadFontLink(fontName) {
 
 function renderFontGrid(gridId, hiddenId, fonts, selectedFont) {
   const grid = document.getElementById(gridId);
-  fonts.forEach(f => loadFontLink(f.name));
+  fonts.forEach(f => loadFontLink(f.name, f.adobe));
   grid.innerHTML = fonts.map(f => `
     <div class="font-card ${selectedFont === f.name ? 'selected' : ''}"
       onclick="selectFont(this,'${gridId}','${hiddenId}','${f.name}')"
